@@ -1,7 +1,7 @@
 #include <Windows.h>
 #include <stdint.h>
 
-#define internal_function static
+#define internal static
 #define local_persist static
 #define global_variable static
 
@@ -22,8 +22,32 @@ global_variable BITMAPINFO BitmapInfo;
 global_variable void *BitmapMemory;
 global_variable int BitmapWidth;
 global_variable int BitmapHeight;
+global_variable int BytesByPixel = 4;
 
-internal_function void 
+internal void
+RenderWeirdGredient(int XOffset, int YOffset)
+{
+    int Width = BitmapWidth;
+    int Heigth = BitmapHeight;
+
+    int Pitch = Width*BytesByPixel;
+    uint8 *Row = (uint8 * )BitmapMemory;
+    for (int Y = 0; Y < BitmapHeight; ++Y)
+    {
+        uint32 *Pixel = (uint32 *)Row;
+        for (int X = 0; X < BitmapWidth; ++X)
+        {
+            uint8 Blue = (uint8)(X + XOffset);
+            uint8 Green = (uint8)(Y + YOffset);
+
+           *Pixel++ = ((Green << 8) | Blue);
+        }
+
+        Row += Pitch;
+    }
+}
+
+internal void 
 Win32ResizedDIBSection(int Width, int Height)
 {
 
@@ -42,38 +66,17 @@ Win32ResizedDIBSection(int Width, int Height)
     BitmapInfo.bmiHeader.biBitCount = 32;
     BitmapInfo.bmiHeader.biCompression = BI_RGB;
 
-    int BytesByPixel = 4;
-    int TotalPixels = (BitmapHeight*BitmapHeight) ;
-    int BitmapMemorySize = TotalPixels*BytesByPixel;
+    int BitmapMemorySize =  (BitmapWidth*BitmapHeight)*BytesByPixel;
     BitmapMemory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
 
-    int Pitch = Width*BytesByPixel;
-    uint8 *Row = (uint8 * )BitmapMemory;
-    for (int Y = 0; Y < BitmapHeight; ++Y)
-    {
-        uint8 *Pixel = (uint8 *)Row;
-        for (int X = 0; X < BitmapWidth; ++X)
-        {
-           *Pixel = 255;
-           ++Pixel;
-           *Pixel = 0;
-           ++Pixel;
-           *Pixel = 0;
-           ++Pixel;
-           *Pixel = 0;
-           ++Pixel;
-        }
-
-        Row += Pitch;
-    }
-    
+    // TODO: Porblaby clear this to black 
 }
 
-internal_function void 
-Win32UpdateWindow(HDC DeviceContext, RECT *WindowRect, int X, int Y, int Width, int Height)
+internal void 
+Win32UpdateWindow(HDC DeviceContext, RECT *ClientRect, int X, int Y, int Width, int Height)
 {
-    int WindowWidth = WindowRect->right - WindowRect->left;
-    int WindowHeight = WindowRect->bottom - WindowRect->top;
+    int WindowWidth = ClientRect->right - ClientRect->left;
+    int WindowHeight = ClientRect->bottom - ClientRect->top;
     StretchDIBits(
         DeviceContext,
         /*
@@ -104,7 +107,6 @@ LRESULT Win32MainWindowCallback(
             int Height = ClientRect.bottom - ClientRect.top;
             int Width = ClientRect.right - ClientRect.left;
             Win32ResizedDIBSection(Width, Height);
-            OutputDebugString("WM_SIZE\n");
             break;
         }
         case WM_DESTROY:
@@ -140,7 +142,7 @@ LRESULT Win32MainWindowCallback(
         }
         default:
         {
-            OutputDebugString("default\n");
+            // OutputDebugString("default\n");
             Result = DefWindowProc(Window, Message, WParam, LParam);
             break;
         }
@@ -148,58 +150,69 @@ LRESULT Win32MainWindowCallback(
     return Result;
 }
 
-int CALLBACK WinMain(
+int CALLBACK 
+WinMain(
     HINSTANCE Instance,
     HINSTANCE PrevInstace,
     LPSTR ComandLine,
     int ShowCode
 ) {
-    OutputDebugString("init\n");
-
-    LPCSTR classname = "HandmadeHeroWidnowClass";
-
-    WNDCLASSA WindowClass = {0};
+    WNDCLASSA WindowClass = {};
 
     // TODO(marcio): check if CS_OWNDC|CS_HREDRAW|CS_VREDRAW still matter 
-    WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
-    // WindowClass.cbClsExtra = 0;
-    // WindowClass.cbWndExtra = 0;
-    // WindowClass.hCursor = LoadCursor(0, IDC_ARROW);
-    // WindowClass.hIcon = LoadIcon(0, IDI_WINLOGO);
-    // WindowClass.lpszMenuName = 0;
-    // WindowClass.hbrBackground = 0;
+    // WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
+
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
     WindowClass.hInstance = Instance;
-    WindowClass.lpszClassName = classname;
+    WindowClass.lpszClassName = "HandmadeHeroWidnowClass";
 
-    int regis = RegisterClass(&WindowClass);
-    if (regis) {
-        HWND WindowHandle = CreateWindowEx(
-            0, 
-            classname,
-            "Handmade Hero",
-            WS_OVERLAPPEDWINDOW|WS_VISIBLE,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            CW_USEDEFAULT,
-            0,
-            0,
-            Instance,
-            0
-        );
-        if (WindowHandle) {
-            MSG Message;
+    if (RegisterClass(&WindowClass)) {
+        HWND Window =
+            CreateWindowEx(
+                0, 
+                WindowClass.lpszClassName,
+                "Handmade Hero",
+                WS_OVERLAPPEDWINDOW|WS_VISIBLE,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                CW_USEDEFAULT,
+                0,
+                0,
+                Instance,
+                0
+            );
+        if (Window) {
+            int XOffset = 0;
+            int YOffset = 0;
+
             Running = true;
             while(Running)
             {
-                BOOL MessageResult = GetMessage(&Message,0,0,0);
-                if (MessageResult) {
+                
+                MSG Message;
+                while (PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
+                {
+
+                    if (Message.message == WM_QUIT)
+                    {
+                        Running = false;
+                    }
                     TranslateMessage(&Message);
                     DispatchMessage(&Message);
-                } else {
-                    Running = false;
                 }
+
+                RenderWeirdGredient(XOffset, YOffset);
+
+                HDC DeviceContext = GetDC(Window);
+                RECT ClientRect;
+                GetClientRect(Window, &ClientRect);
+                int WindowWidth = ClientRect.right - ClientRect.left;
+                int WindowHeight = ClientRect.bottom - ClientRect.top;
+                Win32UpdateWindow(DeviceContext, &ClientRect, 0, 0, WindowWidth, WindowHeight);
+                ReleaseDC(Window, DeviceContext);
+
+                ++XOffset;
             }
         } else {
             // Todo: logging
