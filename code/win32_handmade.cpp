@@ -15,86 +15,117 @@ typedef int16_t int16;
 typedef int32_t int32;
 typedef int64_t int64;
 
-// Todo: This is a global for now.
-global_variable bool Running;
+struct win32_oofscreen_buffer
+{
+    BITMAPINFO Info;
+    void *Memory;
+    int Width;
+    int Height;
+    int Pitch;
+    int BytesByPixel;
+};
 
-global_variable BITMAPINFO BitmapInfo;
-global_variable void *BitmapMemory;
-global_variable int BitmapWidth;
-global_variable int BitmapHeight;
-global_variable int BytesByPixel = 4;
+// Todo: This is a global for now.
+global_variable bool GlobalRunning;
+win32_oofscreen_buffer GlobalBuffer = {0};
+
+struct win32_window_dimension
+{
+    int Width;
+    int Height;
+};
+
+
+win32_window_dimension
+GetWindowDimention(HWND Window) {
+    win32_window_dimension dimention = {};
+    RECT ClientRect;
+    GetClientRect(Window, &ClientRect);
+    dimention.Width = ClientRect.right - ClientRect.left;
+    dimention.Height = ClientRect.bottom - ClientRect.top;
+    return dimention;
+}
 
 internal void
-RenderWeirdGredient(int XOffset, int YOffset)
+RenderWeirdGredient(win32_oofscreen_buffer Buffer, int XOffset, int YOffset)
 {
-    int Width = BitmapWidth;
-    int Heigth = BitmapHeight;
-
-    int Pitch = Width*BytesByPixel;
-    uint8 *Row = (uint8 * )BitmapMemory;
-    for (int Y = 0; Y < BitmapHeight; ++Y)
+    uint8 *Row = (uint8 * )Buffer.Memory;
+    for (int Y = 0; Y < Buffer.Height; ++Y)
     {
         uint32 *Pixel = (uint32 *)Row;
-        for (int X = 0; X < BitmapWidth; ++X)
+        for (int X = 0; X < Buffer.Width; ++X)
         {
-            uint8 Blue = (uint8)(X + XOffset);
-            uint8 Green = (uint8)(Y + YOffset);
 
-           *Pixel++ = ((Green << 8) | Blue);
+            uint8 Color = (uint8)255;
+            if (X == 10){// / 2 && X <  Buffer.Width + Buffer.Width/2) {
+                // uint8 Blue = (uint8)(X) * 2;
+                // uint8 Green = (uint8)(Y) * 3;
+
+                
+                //    *Pixel++ = ((Green << 8) | Blue);
+                *Pixel++ = Color << 8;
+            }
         }
 
-        Row += Pitch;
+        Row += Buffer.Pitch;
     }
 }
 
 internal void 
-Win32ResizedDIBSection(int Width, int Height)
+Win32ResizedDIBSection(win32_oofscreen_buffer *Buffer, int Width, int Height)
 {
-
-    if (BitmapMemory)
+    GlobalBuffer.Width = Width;
+    GlobalBuffer.Height = Height;
+    
+    if (Buffer->Memory)
     {
-        VirtualFree(BitmapMemory, 0, MEM_RELEASE);
+        VirtualFree(Buffer->Memory, 0, MEM_RELEASE);
     }
 
-    BitmapWidth = Width;
-    BitmapHeight = Height;
+    Buffer->BytesByPixel = 4;
     
-    BitmapInfo.bmiHeader.biSize = sizeof(BitmapInfo.bmiHeader);
-    BitmapInfo.bmiHeader.biWidth = BitmapWidth;
-    BitmapInfo.bmiHeader.biHeight = -BitmapHeight;
-    BitmapInfo.bmiHeader.biPlanes = 1;
-    BitmapInfo.bmiHeader.biBitCount = 32;
-    BitmapInfo.bmiHeader.biCompression = BI_RGB;
+    // Note: When the biHeight field is negative, this is the clue to
+    // Windows to treat this bitmap as top-down, not bottom-up, meaning that
+    // the first three bytes of the image are the color for the top left pixel
+    // in the bitmap, not the bottom left!
+    Buffer->Info.bmiHeader.biSize = sizeof(Buffer->Info.bmiHeader);
+    Buffer->Info.bmiHeader.biWidth = Buffer->Width;
+    Buffer->Info.bmiHeader.biHeight = -Buffer->Height;
+    Buffer->Info.bmiHeader.biPlanes = 1;
+    Buffer->Info.bmiHeader.biBitCount = 32;
+    Buffer->Info.bmiHeader.biCompression = BI_RGB;
 
-    int BitmapMemorySize =  (BitmapWidth*BitmapHeight)*BytesByPixel;
-    BitmapMemory = VirtualAlloc(0, BitmapMemorySize, MEM_COMMIT, PAGE_READWRITE);
+    int MemorySize =  (Buffer->Width*Buffer->Height)*Buffer->BytesByPixel;
+    Buffer->Memory = VirtualAlloc(0, MemorySize, MEM_COMMIT, PAGE_READWRITE);
 
     // TODO: Porblaby clear this to black 
+    Buffer->Pitch = Buffer->Width*Buffer->BytesByPixel;
+
 }
 
 internal void 
-Win32UpdateWindow(HDC DeviceContext, RECT *ClientRect, int X, int Y, int Width, int Height)
+Win32DisplayBufferInWindow(win32_oofscreen_buffer Buffer, HDC DeviceContext, int Width, int Height, int X, int Y)
 {
-    int WindowWidth = ClientRect->right - ClientRect->left;
-    int WindowHeight = ClientRect->bottom - ClientRect->top;
+    int WindowWidth = Width;
+    int WindowHeight = Height;
     StretchDIBits(
         DeviceContext,
         /*
         X,Y,Width,Height,
         X,Y,Width,Height,
         */
-        0, 0, BitmapWidth, BitmapHeight,
         0, 0, WindowWidth, WindowHeight,
-        BitmapMemory,
-        &BitmapInfo,
+        0, 0, Buffer.Width, Buffer.Height,
+        Buffer.Memory,
+        &Buffer.Info,
         DIB_RGB_COLORS, SRCCOPY);
 }
 
 LRESULT Win32MainWindowCallback(
-  HWND Window,
-  UINT Message,
-  WPARAM WParam,
-  LPARAM LParam
+    HWND Window,
+    UINT Message,
+    WPARAM WParam,
+    LPARAM LParam
 )
 {
     LRESULT Result = 0;
@@ -102,26 +133,21 @@ LRESULT Win32MainWindowCallback(
     {
         case WM_SIZE:
         {
-            RECT ClientRect;
-            GetClientRect(Window, &ClientRect);
-            int Height = ClientRect.bottom - ClientRect.top;
-            int Width = ClientRect.right - ClientRect.left;
-            Win32ResizedDIBSection(Width, Height);
             break;
         }
         case WM_DESTROY:
         {
-            Running = false; // TODO: Handle this with message to the user?
+            GlobalRunning = false; // TODO: Handle this with message to the user?
             break;
         }
         case WM_CLOSE:
         {
-            Running = false;// TODO: Handle this as an error - recreate window?
+            GlobalRunning = false;// TODO: Handle this as an error - recreate window?
             break;
         }
         case WM_ACTIVATEAPP:
         {
-            OutputDebugString("WM_ACTIVATEAPP\n");
+            OutputDebugStringW(L"WM_ACTIVATEAPP\n");
             break;
         }
         case WM_PAINT:
@@ -133,16 +159,14 @@ LRESULT Win32MainWindowCallback(
             int Height = Paint.rcPaint.bottom - Paint.rcPaint.top;
             int Width = Paint.rcPaint.right - Paint.rcPaint.left;
             
-            RECT ClientRect;
-            GetClientRect(Window, &ClientRect);
+            win32_window_dimension Dimention = GetWindowDimention(Window);
 
-            Win32UpdateWindow(DeviceContext, &ClientRect, X, Y, Width, Height);
+            Win32DisplayBufferInWindow(GlobalBuffer, DeviceContext, Dimention.Width, Dimention.Height, X, Y);
             EndPaint(Window, &Paint);
             break;
         }
         default:
         {
-            // OutputDebugString("default\n");
             Result = DefWindowProc(Window, Message, WParam, LParam);
             break;
         }
@@ -157,21 +181,21 @@ WinMain(
     LPSTR ComandLine,
     int ShowCode
 ) {
-    WNDCLASSA WindowClass = {};
+    WNDCLASSW WindowClass = {};
 
-    // TODO(marcio): check if CS_OWNDC|CS_HREDRAW|CS_VREDRAW still matter 
-    // WindowClass.style = CS_OWNDC|CS_HREDRAW|CS_VREDRAW;
+    Win32ResizedDIBSection(&GlobalBuffer, 1280, 720);
 
+    WindowClass.style = CS_OWNDC|CS_HREDRAW;
     WindowClass.lpfnWndProc = Win32MainWindowCallback;
     WindowClass.hInstance = Instance;
-    WindowClass.lpszClassName = "HandmadeHeroWidnowClass";
+    WindowClass.lpszClassName = L"HandmadeHeroWidnowClass";
 
-    if (RegisterClass(&WindowClass)) {
+    if (RegisterClassW(&WindowClass)) {
         HWND Window =
-            CreateWindowEx(
+            CreateWindowExW(
                 0, 
-                WindowClass.lpszClassName,
-                "Handmade Hero",
+                (LPWSTR) WindowClass.lpszClassName,
+                L"Handmade Hero",
                 WS_OVERLAPPEDWINDOW|WS_VISIBLE,
                 CW_USEDEFAULT,
                 CW_USEDEFAULT,
@@ -186,8 +210,8 @@ WinMain(
             int XOffset = 0;
             int YOffset = 0;
 
-            Running = true;
-            while(Running)
+            GlobalRunning = true;
+            while(GlobalRunning)
             {
                 
                 MSG Message;
@@ -196,23 +220,23 @@ WinMain(
 
                     if (Message.message == WM_QUIT)
                     {
-                        Running = false;
+                        GlobalRunning = false;
                     }
                     TranslateMessage(&Message);
                     DispatchMessage(&Message);
                 }
 
-                RenderWeirdGredient(XOffset, YOffset);
+                RenderWeirdGredient(GlobalBuffer, XOffset, YOffset);
 
                 HDC DeviceContext = GetDC(Window);
-                RECT ClientRect;
-                GetClientRect(Window, &ClientRect);
-                int WindowWidth = ClientRect.right - ClientRect.left;
-                int WindowHeight = ClientRect.bottom - ClientRect.top;
-                Win32UpdateWindow(DeviceContext, &ClientRect, 0, 0, WindowWidth, WindowHeight);
+
+                win32_window_dimension Dimention = GetWindowDimention(Window);
+
+                Win32DisplayBufferInWindow(GlobalBuffer, DeviceContext, Dimention.Width, Dimention.Height, 0, 0);
                 ReleaseDC(Window, DeviceContext);
 
                 ++XOffset;
+                ++YOffset;
             }
         } else {
             // Todo: logging
