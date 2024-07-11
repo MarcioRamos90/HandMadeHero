@@ -351,11 +351,8 @@ WinMain(
 
                         int16 StickX = Pad->sThumbLX;
                         int16 StickY = Pad->sThumbLY;
-
-                        if (A)
-                        {
-                            YOffset += 2;
-                        }
+                        XOffset += StickX >> 13;
+                        YOffset += StickY >> 13;
                     }
                     else
                     {
@@ -366,7 +363,7 @@ WinMain(
                 XINPUT_VIBRATION Vibration;
                 Vibration.wLeftMotorSpeed = 60000;
                 Vibration.wRightMotorSpeed = 60000;
-                XInputSetState(0, &Vibration);
+                //XInputSetState(0, &Vibration);
                 RenderWeirdGredient(&GlobalBuffer, XOffset, YOffset);
 
                 HDC DeviceContext = GetDC(Window);
@@ -376,7 +373,6 @@ WinMain(
                 Win32DisplayBufferInWindow(&GlobalBuffer, DeviceContext, Dimention.Width, Dimention.Height, 0, 0);
                 ReleaseDC(Window, DeviceContext);
 
-                ++XOffset;
             }
         } else {
             // Todo: logging
