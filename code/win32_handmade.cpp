@@ -6,11 +6,14 @@
    $Notice: (C) Copyright 2014 by Molly Rocket, Inc. All Rights Reserved. $
    ======================================================================== */
 
+#include <stdio.h>
+
 #include <windows.h>
 #include <stdint.h>
 #include <xinput.h>
 #include <dsound.h>
 #include <math.h>
+
 
 #define internal static 
 #define local_persist static 
@@ -454,6 +457,11 @@ WinMain(HINSTANCE Instance,
         LPSTR CommandLine,
         int ShowCode)
 {
+
+    LARGE_INTEGER PerfCounterFrequencyResult;
+    QueryPerformanceFrequency(&PerfCounterFrequencyResult);
+    int64 PerfCounterFrequency = PerfCounterFrequencyResult.QuadPart;
+
     Win32LoadXInput();
     
     WNDCLASSA WindowClass = {};
@@ -506,12 +514,17 @@ WinMain(HINSTANCE Instance,
             Win32InitDSound(Window, SoundOutput.SamplesPerSecond, SoundOutput.SecondaryBufferSize);
 			Win32FillSoundBuffer(&SoundOutput, 0, SoundOutput.SecondaryBufferSize);
 			GlobalSecondaryBuffer->Play(0, 0, DSBPLAY_LOOPING);
-    
+            
             GlobalRunning = true;
+
+            LARGE_INTEGER LastCounter;
+            QueryPerformanceCounter(&LastCounter);
+            
+            int64 LastCycleCount = __rdtsc();
+
             while(GlobalRunning)
             {
                 MSG Message;
-
                 while(PeekMessage(&Message, 0, 0, 0, PM_REMOVE))
                 {
                     if(Message.message == WM_QUIT)
@@ -588,6 +601,26 @@ WinMain(HINSTANCE Instance,
                 win32_window_dimension Dimension = Win32GetWindowDimension(Window);
                 Win32DisplayBufferInWindow(&GlobalBackbuffer, DeviceContext,
                                            Dimension.Width, Dimension.Height);
+
+                int64 EndCycleCount = __rdtsc();
+
+                LARGE_INTEGER EndCounter;
+                QueryPerformanceCounter(&EndCounter);
+    
+                // Todo(): Display the value here
+                int64 CyclesElapsed = EndCycleCount - LastCycleCount;
+                int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
+                real32 MSPerFrame = (real32)((1000.0f * (real32)CounterElapsed) / (real32)PerfCounterFrequency);
+                real32 FPS = (real32)PerfCounterFrequency / (real32)CounterElapsed;
+                real32 MCPF = ((real32)(CyclesElapsed / (1000.0f * 1000.0f)));
+
+                char Buffer[256];
+                // mega cycle
+                sprintf(Buffer, "%fms/f -- %f/s -- %f mc/f \n", MSPerFrame, FPS, MCPF);
+                OutputDebugString(Buffer);
+    
+                LastCounter = EndCounter;
+                LastCycleCount = EndCycleCount;
             }
         }
         else
