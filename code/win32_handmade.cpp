@@ -14,26 +14,8 @@
 #include <dsound.h>
 #include <math.h>
 
-
-#define internal static 
-#define local_persist static 
-#define global_variable static
-
-#define Pi32 3.14159265359f
-
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-typedef int32 bool32;
-
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
-typedef float real32;
-typedef double real64;
+#include "handmade.h"
+#include "handmade.cpp"
 
 struct win32_offscreen_buffer
 {
@@ -199,30 +181,6 @@ Win32GetWindowDimension(HWND Window)
     return(Result);
 }
 
-internal void
-RenderWeirdGradient(win32_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset)
-{
-    // TODO(casey): Let's see what the optimizer does
-
-    uint8 *Row = (uint8 *)Buffer->Memory;    
-    for(int Y = 0;
-        Y < Buffer->Height;
-        ++Y)
-    {
-        uint32 *Pixel = (uint32 *)Row;
-        for(int X = 0;
-            X < Buffer->Width;
-            ++X)
-        {
-            uint8 Blue = (X + BlueOffset);
-            uint8 Green = (Y + GreenOffset);
-
-            *Pixel++ = ((Green << 8) | Blue);
-        }
-        
-        Row += Buffer->Pitch;
-    }
-}
 
 internal void
 Win32ResizeDIBSection(win32_offscreen_buffer *Buffer, int Width, int Height)
@@ -572,8 +530,13 @@ WinMain(HINSTANCE Instance,
                         // NOTE(casey): The controller is not available
                     }
                 }
-                
-                RenderWeirdGradient(&GlobalBackbuffer, XOffset, YOffset);
+                game_offscreen_buffer Buffer = {};
+                Buffer.Memory = GlobalBackbuffer.Memory;
+                Buffer.Width = GlobalBackbuffer.Width;
+                Buffer.Height = GlobalBackbuffer.Height;
+                Buffer.Pitch = GlobalBackbuffer.Pitch;
+                GameUpdateAndRender(&Buffer, XOffset, YOffset);
+                // RenderWeirdGradient(&GlobalBackbuffer, XOffset, YOffset);
 
                 // NOTE(casey): DirectSound output test
                 DWORD PlayCursor;
@@ -606,7 +569,7 @@ WinMain(HINSTANCE Instance,
 
                 LARGE_INTEGER EndCounter;
                 QueryPerformanceCounter(&EndCounter);
-    
+#if 0
                 // Todo(): Display the value here
                 uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
                 int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
@@ -618,7 +581,7 @@ WinMain(HINSTANCE Instance,
                 // mega cycle
                 sprintf(Buffer, "%fms/f -- %f/s -- %f mc/f \n", MSPerFrame, FPS, MCPF);
                 OutputDebugString(Buffer);
-    
+#endif    
                 LastCounter = EndCounter;
                 LastCycleCount = EndCycleCount;
             }
