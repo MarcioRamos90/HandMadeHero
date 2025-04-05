@@ -1,4 +1,6 @@
-#if !defined(HANDMADE_H)
+#pragma once
+
+#include <stdint.h>
 
 typedef int8_t int8;
 typedef int16_t int16;
@@ -31,7 +33,4 @@ struct game_offscreen_buffer
 
 // Four things: timing, controller/keyboard input, bitmap buffer to output, sound buffer to output
 internal void GameUpdateAndRender(game_offscreen_buffer, int, int);
-
-#define HANDMADE_H
-#endif
 

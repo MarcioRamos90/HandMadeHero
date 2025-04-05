@@ -8,14 +8,14 @@
 
 #include <stdio.h>
 
+#include "handmade.h"
+#include "handmade.cpp"
+
 #include <windows.h>
-#include <stdint.h>
 #include <xinput.h>
 #include <dsound.h>
 #include <math.h>
 
-#include "handmade.h"
-#include "handmade.cpp"
 
 struct win32_offscreen_buffer
 {
