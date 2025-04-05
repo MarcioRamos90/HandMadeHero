@@ -520,7 +520,7 @@ WinMain(HINSTANCE Instance,
             LARGE_INTEGER LastCounter;
             QueryPerformanceCounter(&LastCounter);
             
-            int64 LastCycleCount = __rdtsc();
+            uint64 LastCycleCount = __rdtsc();
 
             while(GlobalRunning)
             {
@@ -602,13 +602,13 @@ WinMain(HINSTANCE Instance,
                 Win32DisplayBufferInWindow(&GlobalBackbuffer, DeviceContext,
                                            Dimension.Width, Dimension.Height);
 
-                int64 EndCycleCount = __rdtsc();
+                uint64 EndCycleCount = __rdtsc();
 
                 LARGE_INTEGER EndCounter;
                 QueryPerformanceCounter(&EndCounter);
     
                 // Todo(): Display the value here
-                int64 CyclesElapsed = EndCycleCount - LastCycleCount;
+                uint64 CyclesElapsed = EndCycleCount - LastCycleCount;
                 int64 CounterElapsed = EndCounter.QuadPart - LastCounter.QuadPart;
                 real32 MSPerFrame = (real32)((1000.0f * (real32)CounterElapsed) / (real32)PerfCounterFrequency);
                 real32 FPS = (real32)PerfCounterFrequency / (real32)CounterElapsed;
