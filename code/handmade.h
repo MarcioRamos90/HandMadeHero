@@ -1,6 +1,8 @@
 #pragma once
 
 #include <stdint.h>
+#include <stdio.h>
+#include <math.h>
 
 typedef int8_t int8;
 typedef int16_t int16;
@@ -30,7 +32,22 @@ struct game_offscreen_buffer
     int Pitch;
 };
 
+struct game_sound_output_buffer
+{
+    int SamplesPerSecond;
+    int SampleCount;
+    int16 *Samples;
 
-// Four things: timing, controller/keyboard input, bitmap buffer to output, sound buffer to output
-internal void GameUpdateAndRender(game_offscreen_buffer, int, int);
+    // int SamplesPerSecond;
+    // int ToneHz;
+    // int16 ToneVolume;
+    // uint32 RunningSampleIndex;
+    // int WavePeriod;
+    // int BytesPerSample;
+    // int SecondaryBufferSize;
+    // real32 tSine;
+    // int LatencySampleCount;
+};
 
+internal void GameUpdateAndRender(game_offscreen_buffer, int, int, game_sound_output_buffer *SoundBuffer, int ToneHz);
+internal void GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz);
