@@ -1,32 +1,26 @@
 #pragma once
 
-#include <stdint.h>
-#include <stdio.h>
-#include <math.h>
+/*
+    HANDMADE_INTERNAL:
+        0: Build for public release
+        1: Build for developer
+    HANDMADE_SLOW:
+        0: Not slow code allowed
+        1: Slow code welcome
+ */
 
-typedef int8_t int8;
-typedef int16_t int16;
-typedef int32_t int32;
-typedef int64_t int64;
-typedef int32 bool32;
-
-typedef uint8_t uint8;
-typedef uint16_t uint16;
-typedef uint32_t uint32;
-typedef uint64_t uint64;
-
-typedef float real32;
-typedef double real64;
-
-#define Pi32 3.14159265359f
-
-#define internal static 
-#define local_persist static 
-#define global_variable static
+#if HANDMADE_SLOW
+// #define Assert(Expression) \
+//     if(!(Expression)) {*(int *)0 = 0;}
+#include <assert.h>
+#else
+#define assert(Expression)
+#endif
 
 #define Kilobytes(Value) ((Value)*1024)
 #define Megabytes(Value) (Kilobytes(Value)*1024)
 #define Gigabytes(Value) (Megabytes(Value)*1024)
+#define Terabytes(Value) (Gigabytes(Value)*1024)
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof(Array[0]))
 
@@ -91,6 +85,7 @@ struct game_controller_input
 
 struct game_input
 {
+    // TODO: Insert clock value here
     game_controller_input Controllers[4];
 };
 
@@ -106,6 +101,9 @@ struct game_memory
     bool32 IsInitialized;
     uint64 PermanentStorageSize;
     void *PermanentStorage;
+
+    uint64 TransientStorageSize;
+    void *TransientStorage;
 };
 
 internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer, game_sound_output_buffer *SoundBuffer, int ToneHz);

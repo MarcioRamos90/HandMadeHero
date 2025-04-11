@@ -48,13 +48,13 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, game_state *GameState )
 
 internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer, game_sound_output_buffer *SoundBuffer)
 {
+    assert(sizeof(game_state) <= Memory->PermanentStorageSize);
 
     game_state *GameState = (game_state *)Memory->PermanentStorage;
     if (!Memory->IsInitialized)
     {
-        GameState->BlueOffset = 0;
-        GameState->GreenOffset = 0;
         GameState->ToneHz = 256;
+
         // NOTE: it should be here or in the platform?
         Memory->IsInitialized = true;
     }    

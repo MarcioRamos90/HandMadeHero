@@ -1,5 +1,3 @@
-cd .\code\
-
 call build.bat
 
-..\build\win32_handmade.exe
+.\build\win32_handmade.exe

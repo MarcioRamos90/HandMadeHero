@@ -29,6 +29,8 @@
 
 #include <stdint.h>
 #include <malloc.h>
+#include <stdio.h>
+#include <math.h>
 
 #define internal static 
 #define local_persist static 
@@ -50,7 +52,6 @@ typedef uint64_t uint64;
 typedef float real32;
 typedef double real64;
 
-#include "handmade.h"
 #include "handmade.cpp"
 
 #include <windows.h>
@@ -529,13 +530,22 @@ WinMain(HINSTANCE Instance,
             GlobalRunning = true;
             int16 *Samples = (int16 *) VirtualAlloc(0, SoundOutput.SecondaryBufferSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
 
+#if HANDMADE_INTERNAL
+    LPVOID BaseAddres = (LPVOID) Terabytes((uint64)2);
+#else
+    LPVOID BaseAddres = 0;
+#endif
             game_memory GameMemory = {};
-            GameMemory.PermanentStorageSize = 64*1024*1024;
-            GameMemory.PermanentStorage = VirtualAlloc(
-                                0, GameMemory.PermanentStorageSize, 
-                                MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            GameMemory.PermanentStorageSize = Megabytes((uint64)64);
+            GameMemory.TransientStorageSize = Gigabytes((uint64)4);
             
-            if (Samples && GameMemory.PermanentStorage)
+            uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize; 
+            GameMemory.PermanentStorage = VirtualAlloc(
+                                BaseAddres, TotalSize, 
+                                MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);                
+            GameMemory.TransientStorage = ((uint8 *)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize);
+
+            if (Samples && GameMemory.PermanentStorage && GameMemory.TransientStorage)
             {
 
                 game_input Input[2] = {};
