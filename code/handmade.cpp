@@ -1,11 +1,11 @@
 #include "handmade.h"
 
 internal void
-GameOutputSound(game_sound_output_buffer *SoundBuffer,  int ToneHz)
+GameOutputSound(game_sound_output_buffer *SoundBuffer, game_state *GameState)
 {
     local_persist real32 tSine;
     int16 ToneVolume = 3000;
-    int WavePeriod = SoundBuffer->SamplesPerSecond/ToneHz;
+    int WavePeriod = SoundBuffer->SamplesPerSecond/GameState->ToneHz;
 
     int16 *SampleOut = SoundBuffer->Samples;
     for(int SampleIndex = 0;
@@ -22,7 +22,7 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer,  int ToneHz)
 }
 
 internal void
-RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset)
+RenderWeirdGradient(game_offscreen_buffer *Buffer, game_state *GameState )
 {
     // TODO(casey): Let's see what the optimizer does
 
@@ -36,8 +36,8 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffs
             X < Buffer->Width;
             ++X)
         {
-            uint8 Blue = (X + BlueOffset);
-            uint8 Green = (Y + GreenOffset);
+            uint8 Blue = (X + GameState->BlueOffset);
+            uint8 Green = (Y + GameState->GreenOffset);
 
             *Pixel++ = ((Green << 8) | Blue);
         }
@@ -46,18 +46,26 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffs
     }
 }
 
-internal void GameUpdateAndRender(game_input *Input, game_offscreen_buffer *Buffer, game_sound_output_buffer *SoundBuffer)
+internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer, game_sound_output_buffer *SoundBuffer)
 {
-    local_persist int BlueOffset = 0;
-    local_persist int GreenOffset = 0;
-    local_persist int ToneHz = 256;
+
+    game_state *GameState = (game_state *)Memory->PermanentStorage;
+    if (!Memory->IsInitialized)
+    {
+        GameState->BlueOffset = 0;
+        GameState->GreenOffset = 0;
+        GameState->ToneHz = 256;
+        // NOTE: it should be here or in the platform?
+        Memory->IsInitialized = true;
+    }    
+
 
     game_controller_input *Input0 = &Input->Controllers[0];    
     if(Input0->IsAnalog)
     {
         // NOTE(casey): Use analog movement tuning
-        BlueOffset += (int)4.0f*(Input0->EndX);
-        ToneHz = 256 + (int)(128.0f*(Input0->EndY));
+        GameState->BlueOffset += (int)4.0f*(Input0->EndX);
+        GameState->ToneHz = 256 + (int)(128.0f*(Input0->EndY));
     }
     else
     {
@@ -68,11 +76,11 @@ internal void GameUpdateAndRender(game_input *Input, game_offscreen_buffer *Buff
     // Input.AButtonHalfTransitionCount;
     if(Input0->Down.EndedDown)
     {
-        GreenOffset += 1;
+        GameState->GreenOffset += 1;
     }
 
 
     // TODO: Allow sample offsets here for more rubust platform options
-    GameOutputSound(SoundBuffer, ToneHz);
-    RenderWeirdGradient(Buffer, BlueOffset, GreenOffset);
+    GameOutputSound(SoundBuffer, GameState);
+    RenderWeirdGradient(Buffer, GameState);
 }

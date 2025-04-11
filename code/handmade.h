@@ -24,6 +24,10 @@ typedef double real64;
 #define local_persist static 
 #define global_variable static
 
+#define Kilobytes(Value) ((Value)*1024)
+#define Megabytes(Value) (Kilobytes(Value)*1024)
+#define Gigabytes(Value) (Megabytes(Value)*1024)
+
 #define ArrayCount(Array) (sizeof(Array) / sizeof(Array[0]))
 
 struct game_offscreen_buffer
@@ -90,5 +94,19 @@ struct game_input
     game_controller_input Controllers[4];
 };
 
-internal void GameUpdateAndRender(game_input *Input, game_offscreen_buffer, game_sound_output_buffer *SoundBuffer, int ToneHz);
+struct game_state
+{
+    int ToneHz;
+    int GreenOffset;
+    int BlueOffset;
+};
+
+struct game_memory
+{
+    bool32 IsInitialized;
+    uint64 PermanentStorageSize;
+    void *PermanentStorage;
+};
+
+internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer, game_sound_output_buffer *SoundBuffer, int ToneHz);
 internal void GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz);
