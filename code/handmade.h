@@ -61,7 +61,7 @@ struct game_offscreen_buffer
 struct game_sound_output_buffer
 {
     int SamplesPerSecond;
-    int SampleCount;
+    unsigned long SampleCount;
     int16 *Samples;
 
     // int SamplesPerSecond;
@@ -132,5 +132,5 @@ struct game_memory
     void *TransientStorage;
 };
 
-internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer, game_sound_output_buffer *SoundBuffer, int ToneHz);
-internal void GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz);
+internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer, game_sound_output_buffer *SoundBuffer);
+internal void GameOutputSound(game_sound_output_buffer *SoundBuffer, game_state *GameState);
