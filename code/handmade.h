@@ -24,6 +24,32 @@
 
 #define ArrayCount(Array) (sizeof(Array) / sizeof(Array[0]))
 
+inline uint32
+SafeTruncateUInt64(uint64 Value)
+{
+    // TODO: Defines for maximum values
+    assert(Value <= 0XFFFFFFFF);
+    return (uint32) Value;
+}
+
+/**Note: Services that the platform layer provides for the game 
+*/
+#if HANDMADE_INTERNAL
+    /**IMPORTANT:
+        These are NOT for doing anything on the shipping game - they are
+        blocking and the write doesn't protect against lost data!
+     */
+    struct debug_read_file_result
+    {
+        uint32 ContentSize;
+        void* Content;
+    };
+
+    debug_read_file_result DEBUGPlatformReadEntireFile(const char *Filename);
+    void DEBUGPlatformFreeFileMemory(void *Memory);
+    bool32 DEBUGPlatformWriteEntireFile(const char *Filename, uint32 MemorySize, void *Memory);
+#endif
+
 struct game_offscreen_buffer
 {
     void *Memory;

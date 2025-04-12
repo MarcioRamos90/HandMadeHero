@@ -53,6 +53,15 @@ internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_o
     game_state *GameState = (game_state *)Memory->PermanentStorage;
     if (!Memory->IsInitialized)
     {
+        const char *Filename = __FILE__;
+
+        debug_read_file_result ResultRead = DEBUGPlatformReadEntireFile(Filename);
+        if (ResultRead.Content)
+        {
+            DEBUGPlatformWriteEntireFile((const char *) ".\\test.out", ResultRead.ContentSize, ResultRead.Content);
+            DEBUGPlatformFreeFileMemory(ResultRead.Content);
+        }
+
         GameState->ToneHz = 256;
 
         // NOTE: it should be here or in the platform?

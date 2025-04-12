@@ -88,11 +88,99 @@ global_variable x_input_set_state *XInputSetState_ = XInputSetStateStub;
 #define DIRECT_SOUND_CREATE(name) HRESULT WINAPI name(LPCGUID pcGuidDevice, LPDIRECTSOUND *ppDS, LPUNKNOWN pUnkOuter)
 typedef DIRECT_SOUND_CREATE(direct_sound_create);
 
-void *
-PlatformLoadFile(char *FileName)
-{
-    // NOTE(casey): Implements the Win32 file loading
-    return(0);
+internal debug_read_file_result 
+DEBUGPlatformReadEntireFile(const char *Filename) {    
+    debug_read_file_result Result = debug_read_file_result{};
+    HANDLE FileHandle = CreateFileA(
+        Filename,
+        GENERIC_READ,
+        FILE_SHARE_READ,
+        NULL,
+        OPEN_EXISTING,
+        FILE_ATTRIBUTE_NORMAL,
+        NULL
+    );
+    if (FileHandle != INVALID_HANDLE_VALUE)
+    {
+        LARGE_INTEGER FileSize;
+        if (GetFileSizeEx(FileHandle, &FileSize) != INVALID_FILE_SIZE)
+        {
+            uint32 FileSize32 = SafeTruncateUInt64(FileSize.QuadPart);
+            Result.Content = VirtualAlloc(0, FileSize32, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
+            DWORD BytesRead;
+            if (Result.Content)
+            {
+                if (ReadFile(FileHandle, Result.Content, FileSize32, &BytesRead, NULL) && (FileSize32 == BytesRead))
+                {
+                    //NOTE: File Read Successfully
+                    Result.ContentSize = FileSize32;
+                }
+                else
+                {
+                    DEBUGPlatformFreeFileMemory(Result.Content);
+                    Result.Content = 0;
+                }
+
+            }
+            else
+            {
+            //TODO: Log error
+            }
+            CloseHandle(FileHandle);
+        }
+        else
+        {
+            //TODO: Log error
+        }
+    }
+    else
+    {
+        //TODO: Log error
+    }
+
+    return Result;
+}
+
+internal void
+DEBUGPlatformFreeFileMemory(void *Memory) {
+    VirtualFree(
+        Memory,
+        0,
+        MEM_RELEASE
+    );
+}
+
+internal bool32
+DEBUGPlatformWriteEntireFile(const char *Filename, uint32 MemorySize, void *Memory){
+    bool32 Result;
+    
+    HANDLE FileHandle = CreateFileA(Filename, GENERIC_WRITE, NULL, NULL, 
+                                    CREATE_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+    if (FileHandle != INVALID_HANDLE_VALUE)
+    {
+    LARGE_INTEGER FileSize;
+        DWORD BytesWritten;
+        if (WriteFile(FileHandle, Memory, MemorySize, &BytesWritten, NULL))
+        {
+            //NOTE: File Read Successfully
+            Result = BytesWritten == MemorySize;
+        }
+        else
+        {
+            //TODO: Log error
+        }
+
+        CloseHandle(FileHandle);
+
+    }
+    else
+    {
+        //TODO: Log error
+    }
+
+    
+    return Result;
 }
 
 internal void
@@ -737,3 +825,4 @@ WinMain(HINSTANCE Instance,
     
     return(0);
 }
+
