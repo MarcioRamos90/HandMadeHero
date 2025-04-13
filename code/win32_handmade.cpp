@@ -1,17 +1,3 @@
-#if defined(__clang__)
-# pragma clang diagnostic ignored "-Wnonportable-system-include-path"
-# pragma clang diagnostic ignored "-Wc++98-compat-pedantic"
-# pragma clang diagnostic ignored "-Wc++17-attribute-extensions"
-# pragma clang diagnostic ignored "-Wold-style-cast"
-# pragma clang diagnostic ignored "-Wgnu-anonymous-struct"
-# pragma clang diagnostic ignored "-Wzero-as-null-pointer-constant"
-# pragma clang diagnostic ignored "-Wnested-anon-types"
-# pragma clang diagnostic ignored "-Wmissing-prototypes"
-# pragma clang diagnostic ignored "-Wmicrosoft-redeclare-static"
-# pragma clang diagnostic ignored "-Wcast-function-type-strict"
-# pragma clang diagnostic ignored "-Wcast-function-type"
-#endif
-
 /* ========================================================================
    $File: $
    $Date: $
@@ -643,9 +629,7 @@ WinMain(HINSTANCE Instance,
             GameMemory.TransientStorageSize = Gigabytes((uint64)4);
             
             uint64 TotalSize = GameMemory.PermanentStorageSize + GameMemory.TransientStorageSize; 
-            GameMemory.PermanentStorage = VirtualAlloc(
-                                BaseAddres, TotalSize, 
-                                MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);                
+            GameMemory.PermanentStorage = VirtualAlloc(BaseAddres, (SIZE_T)TotalSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);                
             GameMemory.TransientStorage = ((uint8 *)GameMemory.PermanentStorage + GameMemory.PermanentStorageSize);
 
             if (Samples && GameMemory.PermanentStorage && GameMemory.TransientStorage)

@@ -2,7 +2,7 @@
 
 internal void
 GameOutputSound(game_sound_output_buffer *SoundBuffer, game_state *GameState)
-{
+{ 
     local_persist real32 tSine;
     int16 ToneVolume = 3000;
     int WavePeriod = SoundBuffer->SamplesPerSecond/GameState->ToneHz;
