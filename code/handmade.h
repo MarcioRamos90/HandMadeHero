@@ -10,8 +10,7 @@
  */
 
 #if HANDMADE_SLOW
-// #define Assert(Expression) \
-//     if(!(Expression)) {*(int *)0 = 0;}
+// #define assert(Expression) if(!(Expression)) {*(int *)0 = 0;}
 #include <assert.h>
 #else
 #define assert(Expression)

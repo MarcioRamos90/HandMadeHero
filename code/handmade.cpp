@@ -39,7 +39,7 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, game_state *GameState )
             uint8 Blue = (uint8)(X + GameState->BlueOffset);
             uint8 Green = (uint8)(Y + GameState->GreenOffset);
 
-            *Pixel++ = (uint8)((Green << 8) | Blue);
+            *Pixel++ = ((Green << 8) | Blue);
         }
         
         Row += Buffer->Pitch;
@@ -55,12 +55,12 @@ internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_o
     {
         const char *Filename = __FILE__;
 
-        debug_read_file_result ResultRead = DEBUGPlatformReadEntireFile(Filename);
-        if (ResultRead.Content)
-        {
-            DEBUGPlatformWriteEntireFile((const char *) ".\\test.out", ResultRead.ContentSize, ResultRead.Content);
-            DEBUGPlatformFreeFileMemory(ResultRead.Content);
-        }
+        // debug_read_file_result ResultRead = DEBUGPlatformReadEntireFile(Filename);
+        // if (ResultRead.Content)
+        // {
+        //     DEBUGPlatformWriteEntireFile((const char *) ".\\test.out", ResultRead.ContentSize, ResultRead.Content);
+        //     DEBUGPlatformFreeFileMemory(ResultRead.Content);
+        // }
 
         GameState->ToneHz = 256;
 
