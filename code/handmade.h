@@ -101,7 +101,7 @@ struct game_controller_input
     
     union
     {
-        game_button_state Buttons[10];
+        game_button_state Buttons[12];
         struct
         {
             game_button_state MoveUp;
@@ -117,8 +117,11 @@ struct game_controller_input
             game_button_state LeftShoulder;
             game_button_state RightShoulder;
 
-            game_button_state Start;
             game_button_state Back;
+            game_button_state Start;
+
+            // Note: All buttons must be added above this line
+            game_button_state Terminator;
         };
     };
 };
