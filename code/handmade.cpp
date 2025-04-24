@@ -1,17 +1,26 @@
+/* ========================================================================
+   $File: $
+   $Date: $
+   $Revision: $
+   $Creator: Casey Muratori $
+   $Notice: (C) Copyright 2014 by Molly Rocket, Inc. All Rights Reserved. $
+   ======================================================================== */
+
 #include "handmade.h"
 
 internal void
-GameOutputSound(game_sound_output_buffer *SoundBuffer, game_state *GameState)
-{ 
+GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
+{
     local_persist real32 tSine;
     int16 ToneVolume = 3000;
-    int WavePeriod = SoundBuffer->SamplesPerSecond/GameState->ToneHz;
+    int WavePeriod = SoundBuffer->SamplesPerSecond/ToneHz;
 
     int16 *SampleOut = SoundBuffer->Samples;
     for(int SampleIndex = 0;
-            SampleIndex < (int) SoundBuffer->SampleCount;
-            ++SampleIndex)
+        SampleIndex < SoundBuffer->SampleCount;
+        ++SampleIndex)
     {
+        // TODO: Draw this out for people
         real32 SineValue = sinf(tSine);
         int16 SampleValue = (int16)(SineValue * ToneVolume);
         *SampleOut++ = SampleValue;
@@ -22,9 +31,9 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, game_state *GameState)
 }
 
 internal void
-RenderWeirdGradient(game_offscreen_buffer *Buffer, game_state *GameState )
+RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset)
 {
-    // TODO(casey): Let's see what the optimizer does
+    // TODO: Let's see what the optimizer does
 
     uint8 *Row = (uint8 *)Buffer->Memory;    
     for(int Y = 0;
@@ -36,8 +45,8 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, game_state *GameState )
             X < Buffer->Width;
             ++X)
         {
-            uint8 Blue = (uint8)(X + GameState->BlueOffset);
-            uint8 Green = (uint8)(Y + GameState->GreenOffset);
+            uint8 Blue = (uint8)(X + BlueOffset);
+            uint8 Green = (uint8)(Y + GreenOffset);
 
             *Pixel++ = ((Green << 8) | Blue);
         }
@@ -46,50 +55,70 @@ RenderWeirdGradient(game_offscreen_buffer *Buffer, game_state *GameState )
     }
 }
 
-internal void GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer, game_sound_output_buffer *SoundBuffer)
+internal void
+GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
+                    game_sound_output_buffer *SoundBuffer)
 {
-    assert(sizeof(game_state) <= Memory->PermanentStorageSize);
-
+    Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
+    
     game_state *GameState = (game_state *)Memory->PermanentStorage;
-    if (!Memory->IsInitialized)
+    if(!Memory->IsInitialized)
     {
-        const char *Filename = __FILE__;
-
-        // debug_read_file_result ResultRead = DEBUGPlatformReadEntireFile(Filename);
-        // if (ResultRead.Content)
-        // {
-        //     DEBUGPlatformWriteEntireFile((const char *) ".\\test.out", ResultRead.ContentSize, ResultRead.Content);
-        //     DEBUGPlatformFreeFileMemory(ResultRead.Content);
-        // }
-
+        char *Filename = __FILE__;
+        
+        debug_read_file_result File = DEBUGPlatformReadEntireFile(Filename);
+        if(File.Contents)
+        {
+            DEBUGPlatformWriteEntireFile("test.out", File.ContentsSize, File.Contents);
+            DEBUGPlatformFreeFileMemory(File.Contents);
+        }
+       
         GameState->ToneHz = 256;
 
-        // NOTE: it should be here or in the platform?
+        // TODO: This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
-    }    
-
-
-    game_controller_input *Input0 = &Input->Controllers[0];    
-    if(Input0->IsAnalog)
-    {
-        // NOTE(casey): Use analog movement tuning
-        GameState->BlueOffset += (int)(4.0f*(Input0->EndX));
-        GameState->ToneHz = 256 + (int)(128.0f*(Input0->EndY));
     }
-    else
+    
+    for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
     {
-        // NOTE(casey): Use digital movement tuning
+        game_controller_input *Controller = GetController(Input, ControllerIndex);
+        if(Controller->IsAnalog)
+        {
+            // NOTE: Use analog movement tuning
+            GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
+            GameState->ToneHz = 256 + (int)(128.0f*Controller->StickAverageY);
+        }
+        else
+        {
+            // NOTE: Use digital movement tuning
+            if(Controller->MoveLeft.EndedDown)
+            {
+                GameState->BlueOffset -= 1;
+            }
+            if(Controller->MoveRight.EndedDown)
+            {
+                GameState->BlueOffset += 1;
+            }
+
+            if(Controller->MoveUp.EndedDown)
+            {
+                GameState->GreenOffset -= 1;
+            }
+            if(Controller->MoveDown.EndedDown)
+            {
+                GameState->GreenOffset += 1;
+            }
+        }
+
+        // Input.AButtonEndedDown;
+        // Input.AButtonHalfTransitionCount;
+        if(Controller->ActionDown.EndedDown)
+        {
+            GameState->GreenOffset += 1;
+        }
     }
 
-    // Input.AButtonEndedDown;
-    // Input.AButtonHalfTransitionCount;
-    if(Input0->Down.EndedDown)
-    {
-        GameState->GreenOffset += 1;
-    }
-
-
-    // TODO: Allow sample offsets here for more rubust platform options
-    GameOutputSound(SoundBuffer, GameState);
-    RenderWeirdGradient(Buffer, GameState);
+    // TODO: Allow sample offsets here for more robust platform options
+    GameOutputSound(SoundBuffer, GameState->ToneHz);
+    RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 }
