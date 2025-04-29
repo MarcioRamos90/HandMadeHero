@@ -603,11 +603,11 @@ Win32ProcessInputStickValue(SHORT Value, SHORT DeadZoneThreshold)
     real32 Result = 0;
     if(Value < -DeadZoneThreshold)
     {
-        Result = (real32)Value / 32768.0f;
+        Result = (real32)(Value + DeadZoneThreshold) / (32768.0f - DeadZoneThreshold);
     }
     else if(Value > DeadZoneThreshold)
     {
-        Result = (real32)Value / 32767.0f;
+        Result = (real32)(Value - DeadZoneThreshold)  / (32768.0f - DeadZoneThreshold);
     }
 
     return Result;
@@ -708,8 +708,7 @@ WinMain(HINSTANCE Instance,
                     // be wrong!!!
                     game_controller_input *OldKeyboardController =  GetController(OldInput, 0);
                     game_controller_input *NewKeyboardController =  GetController(NewInput, 0);
-                    game_controller_input ZeroController = {};
-                    *NewKeyboardController = ZeroController;
+                    *NewKeyboardController  = {};
                     NewKeyboardController->IsConnected = true;               
                     for (int ButtonIndex =0;
                         ButtonIndex < ArrayCount(NewKeyboardController->Buttons);
@@ -749,21 +748,30 @@ WinMain(HINSTANCE Instance,
                             NewController->StickAverageY = Win32ProcessInputStickValue(Pad->sThumbLY,
                                                                     XINPUT_GAMEPAD_LEFT_THUMB_DEADZONE);
 
+                            if((NewController->StickAverageX != 0.0f) || (NewController->StickAverageY != 0.0f))
+                            {
+                                NewController->IsAnalog = true;
+                            }
+
                             if (Pad->wButtons & XINPUT_GAMEPAD_DPAD_UP)
                             {
-                                 NewController->StickAverageY = 1.0f;
+                                NewController->StickAverageY = 1.0f;
+                                NewController->IsAnalog = false;
                             }
                             if (Pad->wButtons & XINPUT_GAMEPAD_DPAD_DOWN)
                             {
-                                 NewController->StickAverageY = -1.0f;
+                                NewController->StickAverageY = -1.0f;
+                                NewController->IsAnalog = false;
                             }
                             if (Pad->wButtons & XINPUT_GAMEPAD_DPAD_LEFT)
                             {
-                                 NewController->StickAverageX = -1.0f;
+                                NewController->StickAverageX = -1.0f;
+                                NewController->IsAnalog = false;
                             }
                             if (Pad->wButtons & XINPUT_GAMEPAD_DPAD_RIGHT)
                             {
-                                 NewController->StickAverageX = 1.0f;
+                                NewController->StickAverageX = 1.0f;
+                                NewController->IsAnalog = false;
                             }
 
                             real32 Threshold =  0.5f;
