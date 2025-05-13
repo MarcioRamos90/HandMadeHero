@@ -20,7 +20,7 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
         SampleIndex < SoundBuffer->SampleCount;
         ++SampleIndex)
     {
-        // TODO: Draw this out for people
+        // TODO(casey): Draw this out for people
         real32 SineValue = sinf(tSine);
         int16 SampleValue = (int16)(SineValue * ToneVolume);
         *SampleOut++ = SampleValue;
@@ -33,7 +33,7 @@ GameOutputSound(game_sound_output_buffer *SoundBuffer, int ToneHz)
 internal void
 RenderWeirdGradient(game_offscreen_buffer *Buffer, int BlueOffset, int GreenOffset)
 {
-    // TODO: Let's see what the optimizer does
+    // TODO(casey): Let's see what the optimizer does
 
     uint8 *Row = (uint8 *)Buffer->Memory;    
     for(int Y = 0;
@@ -59,7 +59,8 @@ internal void
 GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffer *Buffer,
                     game_sound_output_buffer *SoundBuffer)
 {
-    Assert((&Input->Controllers[0].Terminator - &Input->Controllers[0].Buttons[0]) == ArrayCount(Input->Controllers[0].Buttons));
+    Assert((&Input->Controllers[0].Terminator - &Input->Controllers[0].Buttons[0]) ==
+           (ArrayCount(Input->Controllers[0].Buttons)));
     Assert(sizeof(game_state) <= Memory->PermanentStorageSize);
     
     game_state *GameState = (game_state *)Memory->PermanentStorage;
@@ -76,38 +77,32 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
        
         GameState->ToneHz = 256;
 
-        // TODO: This may be more appropriate to do in the platform layer
+        // TODO(casey): This may be more appropriate to do in the platform layer
         Memory->IsInitialized = true;
     }
-    
-    for(int ControllerIndex = 0; ControllerIndex < ArrayCount(Input->Controllers); ++ControllerIndex)
+
+    for(int ControllerIndex = 0;
+        ControllerIndex < ArrayCount(Input->Controllers);
+        ++ControllerIndex)
     {
         game_controller_input *Controller = GetController(Input, ControllerIndex);
         if(Controller->IsAnalog)
         {
-            // NOTE: Use analog movement tuning
+            // NOTE(casey): Use analog movement tuning
             GameState->BlueOffset += (int)(4.0f*Controller->StickAverageX);
             GameState->ToneHz = 256 + (int)(128.0f*Controller->StickAverageY);
         }
         else
         {
-            // NOTE: Use digital movement tuning
+            // NOTE(casey): Use digital movement tuning
             if(Controller->MoveLeft.EndedDown)
             {
                 GameState->BlueOffset -= 1;
             }
+            
             if(Controller->MoveRight.EndedDown)
             {
                 GameState->BlueOffset += 1;
-            }
-
-            if(Controller->MoveUp.EndedDown)
-            {
-                GameState->GreenOffset -= 1;
-            }
-            if(Controller->MoveDown.EndedDown)
-            {
-                GameState->GreenOffset += 1;
             }
         }
 
@@ -118,8 +113,8 @@ GameUpdateAndRender(game_memory *Memory, game_input *Input, game_offscreen_buffe
             GameState->GreenOffset += 1;
         }
     }
-
-    // TODO: Allow sample offsets here for more robust platform options
+    
+    // TODO(casey): Allow sample offsets here for more robust platform options
     GameOutputSound(SoundBuffer, GameState->ToneHz);
     RenderWeirdGradient(Buffer, GameState->BlueOffset, GameState->GreenOffset);
 }

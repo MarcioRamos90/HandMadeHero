@@ -9,7 +9,7 @@
 
 struct win32_offscreen_buffer
 {
-    // NOTE: Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
+    // NOTE(casey): Pixels are alwasy 32-bits wide, Memory Order BB GG RR XX
     BITMAPINFO Info;
     void *Memory;
     int Width;
@@ -34,7 +34,7 @@ struct win32_sound_output
     int LatencySampleCount;
 };
 
-struct win32_time_marker
+struct win32_debug_time_marker
 {
     DWORD PlayCursor;
     DWORD WriteCursor;
