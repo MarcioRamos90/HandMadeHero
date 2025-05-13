@@ -15,7 +15,7 @@ struct win32_offscreen_buffer
     int Width;
     int Height;
     int Pitch;
-	int BytesPerPixel;
+    int BytesPerPixel;
 };
 
 struct win32_window_dimension
@@ -36,8 +36,8 @@ struct win32_sound_output
 
 struct win32_time_marker
 {
-	DWORD PlayCursor;
-	DWORD WriteCursor;
+    DWORD PlayCursor;
+    DWORD WriteCursor;
 };
 
 #define WIN32_HANDMADE_H
